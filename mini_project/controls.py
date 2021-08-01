@@ -10,24 +10,19 @@ def activate_left_software():
     pg.click()
 
 def play_or_pause():
-    activate_right_software()
     pg.press('space')
 
 def volume_up():
-    activate_right_software()
     pg.press('up')
 
 def volume_down():
-    activate_right_software()
     pg.press('down')
 
 
 def forward():
-    activate_right_software()
     pg.press('right')
 
 def backward():
-    activate_right_software()
     pg.press('left')
 
 

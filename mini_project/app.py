@@ -1,76 +1,70 @@
 import cv2 
-import numpy as np
-import cv2 as cv
+
 import mediapipe as mp
+
 mp_drawing = mp.solutions.drawing_utils
 mp_hands = mp.solutions.hands
 from controls import *
 
-# For static images:
-IMAGE_FILES = []
-with mp_hands.Hands(
-    static_image_mode=True,
-    max_num_hands=2,
-    min_detection_confidence=0.5) as hands:
-  for idx, file in enumerate(IMAGE_FILES):
-    # Read an image, flip it around y-axis for correct handedness output (see
-    # above).
-    image = cv2.flip(cv2.imread(file), 1)
-    # Convert the BGR image to RGB before processing.
-    results = hands.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+coordinates = {
+  
+}
 
-    # Print handedness and draw hand landmarks on the image.
-    print('Handedness:', results.multi_handedness)
-    if not results.multi_hand_landmarks:
-      continue
-    image_height, image_width, _ = image.shape
-    annotated_image = image.copy()
-    for hand_landmarks in results.multi_hand_landmarks:
-      print('hand_landmarks:', hand_landmarks)
-      print(
-          f'Index finger tip coordinates: (',
-          f'{hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x * image_width}, '
-          f'{hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y * image_height})'
-      )
-      mp_drawing.draw_landmarks(
-          annotated_image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-    cv2.imwrite(
-        '/tmp/annotated_image' + str(idx) + '.png', cv2.flip(annotated_image, 1))
 
 # For webcam input:
 cap = cv2.VideoCapture(0)
 with mp_hands.Hands(
     min_detection_confidence=0.5,
     min_tracking_confidence=0.5) as hands:
+  activate_right_software()
   while cap.isOpened():
     success, image = cap.read()
     if not success:
       print("Ignoring empty camera frame.")
       # If loading a video, use 'break' instead of 'continue'.
       continue
-    # draw the lines and text
-    img = np.zeros((512,512,3), np.uint8)
-    cv.rectangle(img,(384,0),(510,128),(0,255,0),3)
-    
 
-    # Flip the image horizontally for a later selfie-view display, and convert
-    # the BGR image to RGB.
     image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
-    # To improve performance, optionally mark the image as not writeable to
-    # pass by reference.
     image.flags.writeable = False
     results = hands.process(image)
-
+    h,w,_ =  image.shape
     # Draw the hand annotations on the image.
     image.flags.writeable = True
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     if results.multi_hand_landmarks:
       for hand_landmarks in results.multi_hand_landmarks:
-        mp_drawing.draw_landmarks(
-            image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-    
+        mp_drawing.draw_landmarks(image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+        x = int(hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x * w)
+        y = int(hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y * h)
+        if x > 0 and x < w//2 and y > 0 and y < 100:
+          print("volume down")
+          volume_down()
+        if x > w//2 and x < w and y > 0 and y < 100:
+          print("volume up")
+          volume_up()
+        onethird = w//2
+        if x > 0 and x < onethird and y >100 and y < 200:
+          backward()
+
+
+  
+  
+    green = (255,255,0)
+    red = (255,255,255)
+    thickness = 2
+    cv2.line(image,(0,100),(w,100),green,thickness)
+    cv2.line(image,(0,200),(w,200),green,thickness)
+    cv2.line(image,(w//2,0),(w//2,100),green,thickness)
+    cv2.line(image,(w//3,100),(w//3,200),green,thickness)
+    cv2.line(image,(w//3*2,100),(w//3*2,200),green,thickness)
+
+    cv2.putText(image,"Vol -",(10,80),cv2.FONT_HERSHEY_PLAIN,1,red)
+    cv2.putText(image,"Vol +",(w//2+10,80),cv2.FONT_HERSHEY_PLAIN,1,red)
+    cv2.putText(image,"backward",(10,200-20),cv2.FONT_HERSHEY_PLAIN,1,red)
+
+    #  put text in other boxes yourself
+
     cv2.imshow('gesture window', image)
-    # print(cv2.getWindowImageRect('gesture window'))
     if cv2.waitKey(5) & 0xFF == 27:
       break
 cap.release()
